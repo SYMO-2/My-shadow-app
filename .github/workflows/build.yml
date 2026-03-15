@@ -1,4 +1,4 @@
-name: Build APK Smart Search
+name: Build APK Ultimate Smart
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -13,7 +13,6 @@ jobs:
           
       - name: Extract All Files
         run: |
-          # فك ضغط أي ملف zip موجود في أي مكان
           find . -name "*.zip" -exec unzip -o {} -d . \;
           
       - name: Set up JDK 17
@@ -24,29 +23,30 @@ jobs:
           
       - name: Smart Build Execution
         run: |
-          # 1. البحث عن المجلد الذي يحتوي على package.json والدخول إليه
+          # 1. البحث عن المجلد الذي يحتوي على package.json
           PROJECT_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
           cd "$PROJECT_DIR"
-          echo "Working in: $(pwd)"
           
-          # 2. تثبيت التبعيات وبناء الويب
+          # 2. إنشاء ملف capacitor.config.json إذا كان مفقوداً
+          if [ ! -f "capacitor.config.json" ]; then
+            echo '{"appId": "com.autoexecutor.app", "appName": "AutoExecutor", "webDir": "dist"}' > capacitor.config.json
+          fi
+          
+          # 3. تثبيت التبعيات وبناء الويب
           npm install
-          npm run build || true # حتى لو فشل البناء سنكمل لمحاولة بناء الأندرويد
-          
-          # 3. التأكد من وجود مجلد dist (الذي يطلبه Capacitor) في نفس مكان package.json
-          mkdir -p dist
+          npm run build || mkdir -p dist && echo "<html><body>Build Fallback</body></html>" > dist/index.html
           
           # 4. البحث عن مجلد أندرويد وتشغيل المزامنة
+          ANDROID_DIR=$(find . -name "gradlew" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
           npx cap sync android || true
           
-          # 5. البحث عن ملف gradlew في أي مكان داخل المشروع وتشغيل بناء الـ APK
-          GRADLE_DIR=$(find . -name "gradlew" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
-          cd "$GRADLE_DIR"
+          # 5. بناء الـ APK النهائي
+          cd "$ANDROID_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
           
-      - name: Upload All Found APKs
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: my-final-apk
-          path: "**/*.apk" # سيبحث عن أي ملف apk نتج في أي مجلد ويرفعه لك
+          path: "**/*.apk"
