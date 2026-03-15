@@ -6,12 +6,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Extract Project Directly
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # تحديث النسخة لحل المشكلة التي ظهرت لك
+          
+      - name: Extract Project
         run: |
-          # فك ضغط ملف الـ Zip في المجلد الحالي مباشرة لتجنب مشاكل المسافات في الأسماء
           ZIP_FILE=$(ls *.zip | head -n 1)
-          unzip -j "$ZIP_FILE" -d . || true
-          # فك ضغط الملف بالكامل مع الحفاظ على الهيكل ولكن في المجلد الرئيسي
           unzip -o "$ZIP_FILE" -d .
           
       - name: Set up JDK 17
@@ -22,7 +24,6 @@ jobs:
           
       - name: Build Project
         run: |
-          # التأكد من وجود الصلاحيات وتشغيل البناء في المجلد الحالي
           npm install
           npm run build
           npx cap sync android
