@@ -6,16 +6,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Extract and Find Project
+      - name: Extract Project Directly
         run: |
-          # فك ضغط أول ملف zip يجده
+          # فك ضغط ملف الـ Zip في المجلد الحالي مباشرة لتجنب مشاكل المسافات في الأسماء
           ZIP_FILE=$(ls *.zip | head -n 1)
-          unzip "$ZIP_FILE" -d extracted_files
-          
-          # البحث عن المجلد الذي يحتوي على package.json وحفظه بشكل صحيح
-          PROJECT_DIR=$(find extracted_files -name "package.json" -exec dirname {} \;)
-          echo "PROJECT_PATH=$PROJECT_DIR" >> $GITHUB_ENV
-          echo "Found project at: $PROJECT_DIR"
+          unzip -j "$ZIP_FILE" -d . || true
+          # فك ضغط الملف بالكامل مع الحفاظ على الهيكل ولكن في المجلد الرئيسي
+          unzip -o "$ZIP_FILE" -d .
           
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -25,8 +22,7 @@ jobs:
           
       - name: Build Project
         run: |
-          # استخدام علامات التنصيص للتعامل مع المسافات في اسم المجلد
-          cd "${{ env.PROJECT_PATH }}"
+          # التأكد من وجود الصلاحيات وتشغيل البناء في المجلد الحالي
           npm install
           npm run build
           npx cap sync android
