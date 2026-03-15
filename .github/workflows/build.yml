@@ -12,7 +12,7 @@ jobs:
           ZIP_FILE=$(ls *.zip | head -n 1)
           unzip "$ZIP_FILE" -d extracted_files
           
-          # البحث عن المجلد الذي يحتوي على package.json
+          # البحث عن المجلد الذي يحتوي على package.json وحفظه بشكل صحيح
           PROJECT_DIR=$(find extracted_files -name "package.json" -exec dirname {} \;)
           echo "PROJECT_PATH=$PROJECT_DIR" >> $GITHUB_ENV
           echo "Found project at: $PROJECT_DIR"
@@ -25,7 +25,8 @@ jobs:
           
       - name: Build Project
         run: |
-          cd ${{ env.PROJECT_PATH }}
+          # استخدام علامات التنصيص للتعامل مع المسافات في اسم المجلد
+          cd "${{ env.PROJECT_PATH }}"
           npm install
           npm run build
           npx cap sync android
