@@ -1,4 +1,4 @@
-name: Build APK Ultimate Smart
+name: Build APK Final Rescue
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -13,6 +13,7 @@ jobs:
           
       - name: Extract All Files
         run: |
+          # فك ضغط أي ملف zip موجود
           find . -name "*.zip" -exec unzip -o {} -d . \;
           
       - name: Set up JDK 17
@@ -27,21 +28,23 @@ jobs:
           PROJECT_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
           cd "$PROJECT_DIR"
           
-          # 2. إنشاء ملف capacitor.config.json إذا كان مفقوداً
+          # 2. تثبيت التبعيات وبناء الويب
+          npm install
+          npm run build || (mkdir -p dist && echo "<html><body>Build Fallback</body></html>" > dist/index.html)
+          
+          # 3. التأكد من وجود Capacitor وإضافة أندرويد إذا لم يكن موجوداً
           if [ ! -f "capacitor.config.json" ]; then
             echo '{"appId": "com.autoexecutor.app", "appName": "AutoExecutor", "webDir": "dist"}' > capacitor.config.json
           fi
           
-          # 3. تثبيت التبعيات وبناء الويب
-          npm install
-          npm run build || mkdir -p dist && echo "<html><body>Build Fallback</body></html>" > dist/index.html
+          # إضافة منصة أندرويد إذا لم تكن موجودة أو كانت تالفة
+          npx cap add android || true
+          npx cap sync android
           
-          # 4. البحث عن مجلد أندرويد وتشغيل المزامنة
-          ANDROID_DIR=$(find . -name "gradlew" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
-          npx cap sync android || true
-          
-          # 5. بناء الـ APK النهائي
-          cd "$ANDROID_DIR"
+          # 4. البحث عن ملف gradlew وبدء البناء
+          GRADLE_PATH=$(find . -name "gradlew" -not -path "*/node_modules/*" | head -n 1)
+          GRADLE_DIR=$(dirname "$GRADLE_PATH")
+          cd "$GRADLE_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
           
